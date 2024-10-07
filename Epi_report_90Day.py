@@ -116,7 +116,7 @@ def format_df(df):
         "Modified date",
         "WGS_id",
         "ReceivedDate",
-        "LabReceivedDate"
+        "LabReceivedDate",
         "SequencerRun_id",
         "Allele_Code",
         "Outbreak",
