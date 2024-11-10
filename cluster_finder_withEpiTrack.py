@@ -9,11 +9,12 @@ import time
 from win32com.client import constants
 from datetime import datetime
 import warnings
+from datetime import date
 
 # Suppresses all warnings
 warnings.filterwarnings('ignore')
 
-organisms = ["Campylobacter","Escherichia","Listeria", "Salmonella", "Vibrio"]
+organisms = ["Campylobacter","Escherichia", "Listeria" ,"Salmonella", "Vibrio"] 
 path_to_downloads = "//kdhe/dfs/LabShared/Molecular Genomics Unit/Testing/PulseNet/Downloaded data/"
 path_to_epi_report = "//kdhe/dfs/EPI/LAB_OSE/WGS/"      
 json_path = "cluster_tracker.json"
@@ -26,9 +27,11 @@ cutoff = 10
 def get_attr(row, attr, df):
     if attr == 'PatientDOB':
         date = df.loc[row['Sample ID'], attr]
+        print(date)
         return date.date()
     else:
         return df.loc[row['Sample ID'], attr]
+
         
 # Function to extract numeric part from column names
 def extract_numeric_part(col_name):
@@ -100,13 +103,13 @@ def create_outbreak_df(df_of_outbreaks, columns_summary,org):
 
         else:
 
-            # print([index,row[9],row[10],row[13],row[11],row[14],row[18],row[17],row[22],row[5]])
-            temp_summary.loc[0] = [index,row[9],row[10],row[13],row[11],row[14],row[18],row[17],row[22],row[5] ]
+            # print([index,row[9],row[10],row[13],row[11],row[14],row[18],row[17],row[22],row[4]])
+            temp_summary.loc[0] = [index,row[9],row[10],row[13],row[11],row[14],row[18],row[17],row[22],row[4] ]
        
-            temp_summary.rename(columns={'Sample ID':row[5]}, inplace=True)
-            temp_summary= temp_summary.set_index(row[5])
+            temp_summary.rename(columns={'Sample ID':row[4]}, inplace=True)
+            temp_summary= temp_summary.set_index(row[4])
          
-            temp_summary.style.set_caption(row[5])
+            temp_summary.style.set_caption(row[4])
 
         outbreak_summary.append(temp_summary)
         # print(outbreak_summary)
@@ -160,7 +163,7 @@ def highlight_newrows(path_to_outputfile, new_hsns):
 
 # This function finds and return data related to specific serotypes of Salmonella from a given DataFrame. 
 # It filters the DataFrame to find entries corresponding to certain serotypes and organizes these filtered entries in a dictionary. 
-def find_serotype(samolella_df):
+def find_serotype(salmonella_df):
     c_name = "Serotype_wgs"
     # typhi, paratyphi A, paratyphi B tartrate negative, and paratyphi C
     cdc = ["Typhi","Paratyphi A","Paratyphi B","Paratyphi C"] 
@@ -169,7 +172,7 @@ def find_serotype(samolella_df):
     #temp_df.query("Outbreak.notnull()")
 
     for sero_type in cdc:
-        temp_df= samolella_df.query(c_name+" == @sero_type")
+        temp_df= salmonella_df.query(c_name+" == @sero_type")
         if not(temp_df.empty):
             serotype_dfs[sero_type]= temp_df  # The dictionary's keys are the serotype names, and the values are DataFrames with rows matching each serotype.
             #print("for "+sero_type)
@@ -179,8 +182,8 @@ def find_serotype(samolella_df):
     return serotype_dfs
 
 
-# Change this function according to the different organisms ????
-def format_df(p,first_df,r_date):
+# Salmonella Dataset
+def format_df_sal(p,first_df,r_date):
     rename_col_lst= {
     "Key":"HSN",
     "WGS_id":"WGS_ID",
@@ -191,7 +194,7 @@ def format_df(p,first_df,r_date):
     "SourceCounty":"County",
     "SourceState":"State",
     "LabID": "Lab",
-    "Serotype_wgs": "Serotype_wgs",  # Not there in Listeria, vibrio and campy database.
+    "Serotype_wgs": "Serotype_wgs",  
     "NCBI_ACCESSION":"NCBI_ACCESSION",
     "Allele_Code":"Allele_Code",
     "Outbreak":"Outbreak",
@@ -238,14 +241,13 @@ def format_df(p,first_df,r_date):
     curr_hsn = main_df["HSN"].values.tolist()
     curr_hsn = [str(i) for i in curr_hsn]
 
-    new_hsn = keep_only_new_records(p+"Epi_Track_Output/",curr_hsn,r_date)
+    new_hsn = keep_only_new_records(p+"Epi_Track_Output/Salmonella/",curr_hsn,r_date)
     
     new_hsn = [int(i) for i in new_hsn]
     main_df = main_df[main_df["HSN"].isin(new_hsn)]
     
     # write to file
-    main_df.to_csv(p+"Epi_Track_Output/"+r_date+"_epiTrackOutput.csv",index=False)
-
+    main_df.to_csv(p+"Epi_Track_Output/Salmonella/"+r_date+"_epiTrackOutput_Salmonella.csv",index=False)
 
 # This function keeps only new HSNs after we check for the HSNs from the recent previous report or the old_hsn.csv file.
 def keep_only_new_records(path,current_hsn,curr_run_date):
@@ -275,6 +277,104 @@ def keep_only_new_records(path,current_hsn,curr_run_date):
         return []
 
 
+# Escherichia Dataset
+def format_df_ecoli(p,first_df,r_date):
+    rename_col_lst= {
+    "Key":"HSN",
+    "WGS_id":"WGS_ID",
+    "FirstName": "Patient_First_Name",
+    "LastName": "Patient_Last_Name",
+    "PatientDOB": "Patient_DOB",
+    "PatientSex": "Patient_Gender",
+    "SourceCounty":"County",
+    "SourceState":"State",
+    "LabID": "Lab",
+    "Serotype_wgs": "Serotype_wgs",  
+    "NCBI_ACCESSION":"NCBI_ACCESSION",
+    "Allele_Code":"Allele_Code",
+    "Outbreak":"Outbreak",
+    "REP_code":"REP_code",  
+    "PulseNet_UploadDate":"PulseNet_UploadDate",
+    "IsolatDate": "Collection_Date",
+    "SourceSite":"Specimen_Source",
+    "Toxin_wgs":"Toxin_wgs",
+    "Escherichia_group":"Escherichia_group"}
+
+    csv_headers= [
+    "HSN",
+    "WGS_ID",
+    "Patient_Last_Name",
+    "Patient_First_Name",
+    "Patient_DOB",
+    "Patient_Gender",
+    "County",
+    "State",
+    "Lab",
+    "Serotype_wgs",
+    "NCBI_ACCESSION",
+    "Allele_Code",
+    "Outbreak",
+    "REP_code",
+    "PulseNet_UploadDate",
+    "Collection_Date",
+    "Specimen_Source",
+    "Toxin_wgs",
+    "Escherichia_group"]
+
+    #sort through the Key 
+    #if Key.isnumeric
+    main_df = first_df[pd.to_numeric(first_df['Key'], errors='coerce').notnull()]
+
+    # drop others
+    main_df = main_df[[*rename_col_lst]]
+
+    #rename
+    main_df = main_df.rename(columns = rename_col_lst)
+    
+    #sort order 
+    main_df = main_df[csv_headers]
+
+    #remove non KS state from DF
+    main_df = main_df[main_df["Lab"] == "KS"]
+
+    curr_hsn = main_df["HSN"].values.tolist()
+    curr_hsn = [str(i) for i in curr_hsn]
+
+    new_hsn = keep_only_new_records_ecoli(p+"Epi_Track_Output/Escherichia/",curr_hsn,r_date)
+    
+    new_hsn = [int(i) for i in new_hsn]
+    main_df = main_df[main_df["HSN"].isin(new_hsn)]
+    
+    # write to file
+    main_df.to_csv(p+"Epi_Track_Output/Escherichia/"+r_date+"_epiTrackOutput_Escherichia.csv",index=False)
+
+
+# This function keeps only new HSNs after we check for the HSNs from the recent previous report or the old_hsn_ecoli.csv file.
+def keep_only_new_records_ecoli(path,current_hsn,curr_run_date):
+    
+    # Open old_hsn.csv
+
+    try:
+        old_upload = pd.read_csv(path+"old_hsn_ecoli.csv",header=0)
+        
+        column_values= old_upload[old_upload.columns.values.tolist()[0]].values.tolist()
+        # Then go line by line to to turn that first column into the list
+        column_values = [str(i) for i in column_values]
+        new_hsns=[]
+        # Then loop through hsns to see if they exist 
+        for hsn in current_hsn:
+            if hsn not in column_values:
+                print("this sample is NEW "+hsn)
+                new_hsns.append(hsn)
+
+                old_upload.loc[len(old_upload.index)] = [str(hsn)]  # This line is effectively appending a new row to the DataFrame old_upload with the value of hsn converted to a string.
+
+        old_upload.to_csv(path+"old_hsn_ecoli.csv",index=False)
+        # Return the HSNs which will be pushed to the excel file.
+        return new_hsns
+
+    except: 
+        return []
 
 if __name__ == "__main__":
 
@@ -328,7 +428,7 @@ if __name__ == "__main__":
             matrix_df = pd.DataFrame(organism_demo_df_dict[organism][1])
             
             # Make HSN index
-            matrix_df = matrix_df.rename(columns={'Unnamed: 0': 'Key'})
+            matrix_df = matrix_df.rename(columns={'samples': 'Key'})
             matrix_df['Key'] = matrix_df['Key'].astype(str)
             matrix_df = matrix_df.set_index('Key')
 
@@ -416,24 +516,32 @@ if __name__ == "__main__":
     # organism_demo_df_dict[organism][0] check this df
     outbreaks ={}
     for organism in organisms:
-        #outbreaks[organism] = []
-        temp_df = organism_demo_df_dict[organism][0]
+        # Check if the organism's demo Dataframe exists 
+        if organism in organism_demo_df_dict:
+            temp_df = organism_demo_df_dict[organism][0]
 
-         # Using .query() method
-        if 'Outbreak' in temp_df.columns:
-            outbreaks[organism] = temp_df.query("Outbreak.notnull()")
+            # Using .query() method
+            if 'Outbreak' in temp_df.columns:
+                outbreaks[organism] = temp_df.query("Outbreak.notnull()")
+            else:
+                print(f"'Outbreak' column not found for {organism}.")
         else:
-            print(f"'Outbreak' column not found for {organism}.")
+            print(f"No demo data found for {organism}. Skipping...")
+            continue  # Skip to the next organism if not found
+
     summaries = {}
 
     col_order = ['Sample ID', 'LastName', 'FirstName', 'SourceCounty', 'PATIENTAGEYEARS', 'PatientSex', 'SourceSite','PulseNet_UploadDate','Outbreak']
     # format the dataframes  
     for organism in epi_matrices.keys():
+        if organism not in organisms:
+            print(f"Skipping {organism} as it is not in the predefined list.")
+            continue  # Skip organisms not in the predefined list
         summaries[organism] = []
         all_samples_found[organism]=[]
         for aa_code in epi_matrices[organism].keys():
-            #print(aa_code)
             current_matrix = epi_matrices[organism][aa_code]
+            # Create summary DataFrame
             summary_matrix = pd.DataFrame(list(current_matrix.index), columns= ["Sample ID"])
             # Adding columns conditionally 
             summary_matrix['LastName'] = summary_matrix.apply(lambda row: get_attr(row, "LastName", organism_demo_df_dict[organism][0]), axis=1)
@@ -455,15 +563,14 @@ if __name__ == "__main__":
             summary_matrix = summary_matrix[col_order] # Ensure unique columns and reorder
             summary_matrix.rename(columns={'Sample ID':aa_code}, inplace=True)
             summary_matrix = summary_matrix.set_index(aa_code)
-            summary_matrix.style.set_caption(aa_code)
-            summaries[organism].append(summary_matrix)
+            summaries[organism].append(summary_matrix)  # Append unstyled matrix or a styled version
             
             all_samples_found[organism]+= list(current_matrix.index)
             #print("current summary_matrix")
             #print(summary_matrix)
             for sample in list(current_matrix.index):   
                 if sample in outbreaks[organism].index.tolist():
-                    print(sample+" was found in another cluster removing from outbreaks")
+                    print(sample +" was found in another cluster removing from outbreaks")
                     # Need to remove this sample from this table
                     outbreaks[organism] = outbreaks[organism].drop(sample)     
         
@@ -538,29 +645,10 @@ if __name__ == "__main__":
     shade_workbooks(workbook_lst) # Calling shade_workbooks() to get the shaded workbook/excel file!
 
     # Create epi tracks output
+    # For Salmonella samples
     salmonella_df = pd.read_excel(demo_path, sheet_name="Salmonella")
+    # For Escheria Coli samples.
+    Escherichia_df = pd.read_excel(demo_path, sheet_name="Escherichia")
     # Use the format_df function to format each DataFrame
-    format_df(path_to_results,salmonella_df,run_date)
-
-    # Escherichia_df = pd.read_excel(demo_path, sheet_name="Escherichia")
-    # Listeria_df = pd.read_excel(demo_path, sheet_name="Listeria")
-    # Campy_df = pd.read_excel(demo_path, sheet_name="Campy")
-   
-    # format_df(path_to_results,Escherichia_df,run_date)
-    # format_df(path_to_results,Listeria_df,run_date)
-    # format_df(path_to_results,Campy_df,run_date)
-
-    # # After formatting, save the DataFrames to Excel
-    # combined_results_path = path_to_results + run_date + "_Combined_Results.xlsx"
-    # with pd.ExcelWriter(combined_results_path, engine='openpyxl') as writer:
-    #     # Write each formatted DataFrame to a separate sheet
-    #     salomonella_df.to_excel(writer, sheet_name="Salmonella", index=False)
-    #     Escherichia_df.to_excel(writer, sheet_name="Escherichia", index=False)
-    #     # Listeria_df.to_excel(writer, sheet_name="Listeria", index=False)
-    #     # Campy_df.to_excel(writer, sheet_name="Campy", index=False)
-
-
-
-
-
-
+    format_df_sal(path_to_results,salmonella_df,run_date)
+    format_df_ecoli(path_to_results,Escherichia_df,run_date)
